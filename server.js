@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 require("dotenv").config();
+const bcrypt = require("bcrypt");
 
 const app = express();
 const { MongoClient } = require("mongodb");
@@ -22,13 +23,13 @@ const main = async () => {
   /////////// Router ///////////
   var router = require("express").Router();
 
-  router.get("/", async (req, res) => {
+  router.get("/funds", async (req, res) => {
     const cursor = client.db("JDayCluster").collection("funds").find();
     const result = await cursor.toArray();
     res.send(result);
   });
 
-  router.get("/:address", async (req, res) => {
+  router.get("/funds/:address", async (req, res) => {
     const address = req.params.address;
     const result = await client
       .db("JDayCluster")
@@ -37,7 +38,7 @@ const main = async () => {
     res.send(result);
   });
 
-  router.post("/account", async (req, res) => {
+  router.post("/funds/account", async (req, res) => {
     const address = req.body.address;
     const result = await client
       .db("JDayCluster")
@@ -46,7 +47,7 @@ const main = async () => {
     res.send(result);
   });
 
-  router.post("/", async (req, res) => {
+  router.post("/funds", async (req, res) => {
     const result = await client
       .db("JDayCluster")
       .collection("funds")
@@ -54,7 +55,7 @@ const main = async () => {
     res.send(result);
   });
 
-  router.post("/addfund", async (req, res) => {
+  router.post("/funds/addfund", async (req, res) => {
     console.log(req.body);
     const result = await client
       .db("JDayCluster")
@@ -66,7 +67,37 @@ const main = async () => {
     res.send(result);
   });
 
-  app.use("/api/funds", router);
+  router.get("/users", async (req, res) => {
+    const cursor = client.db("JDayCluster").collection("users").find();
+    const result = await cursor.toArray();
+    res.send(result);
+  });
+
+  router.post("/users/register", async (req, res) => {
+    const salt = parseInt(process.env.BCRYPT_WORK_FACTOR);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+    const result = await client
+      .db("JDayCluster")
+      .collection("users")
+      .insertOne({
+        firstname: req.body.firstname,
+        lastname: req.body.lastname,
+        email: req.body.email,
+        password: hashedPassword,
+      });
+    res.send(result);
+  });
+
+  router.post("/users/signin", async (req, res) => {
+    const result = await client
+      .db("JDayCluster")
+      .collection("users")
+      .findOne({ email: req.body.email });
+    const comp = await bcrypt.compare(req.body.password, result.password);
+    comp ? res.send(result) : res.send(false);
+  });
+
+  app.use("/api", router);
 };
 
 main().then(() => {

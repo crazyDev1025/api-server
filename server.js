@@ -80,19 +80,20 @@ const main = async () => {
       .findOne({ email: req.body.email });
     if (result) {
       res.send("Email already Exists");
+    } else {
+      const salt = parseInt(process.env.BCRYPT_WORK_FACTOR);
+      const hashedPassword = await bcrypt.hash(req.body.password, salt);
+      const result = await client
+        .db("JDayCluster")
+        .collection("users")
+        .insertOne({
+          firstname: req.body.firstname,
+          lastname: req.body.lastname,
+          email: req.body.email,
+          password: hashedPassword,
+        });
+      res.send(result);
     }
-    // const salt = parseInt(process.env.BCRYPT_WORK_FACTOR);
-    // const hashedPassword = await bcrypt.hash(req.body.password, salt);
-    // const result = await client
-    //   .db("JDayCluster")
-    //   .collection("users")
-    //   .insertOne({
-    //     firstname: req.body.firstname,
-    //     lastname: req.body.lastname,
-    //     email: req.body.email,
-    //     password: hashedPassword,
-    //   });
-    // res.send(result);
   });
 
   router.post("/users/signin", async (req, res) => {
